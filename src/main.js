@@ -6,8 +6,8 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { Pane } from 'tweakpane'
 
-import fragmentShader from './shaders/mirror/fragment.glsl'
-import vertexShader from './shaders/mirror/vertex.glsl'
+import fragmentShader from './shaders/water/fragment.glsl'
+import vertexShader from './shaders/water/vertex.glsl'
 
 /**
  * Debug
@@ -19,6 +19,8 @@ const config = {
 	reflectivity: 0.4,
 	roughness: 0,
 	roughnessScale: 20,
+	frequency: 2,
+	amplitude: 0.07,
 }
 const pane = new Pane()
 
@@ -37,7 +39,7 @@ pane
 		step: 0.01,
 	})
 	.on('change', (ev) => {
-		mirrorMaterial.uniforms.uReflectivity.value = ev.value
+		waterMaterial.uniforms.uReflectivity.value = ev.value
 	})
 
 pane
@@ -47,7 +49,7 @@ pane
 		step: 0.001,
 	})
 	.on('change', (ev) => {
-		mirrorMaterial.uniforms.uRoughness.value = ev.value
+		waterMaterial.uniforms.uRoughness.value = ev.value
 	})
 
 pane
@@ -57,7 +59,27 @@ pane
 		step: 0.5,
 	})
 	.on('change', (ev) => {
-		mirrorMaterial.uniforms.uRoughnessScale.value = ev.value
+		waterMaterial.uniforms.uRoughnessScale.value = ev.value
+	})
+
+pane
+	.addBinding(config, 'frequency', {
+		min: 0.01,
+		max: 5,
+		step: 0.001,
+	})
+	.on('change', (ev) => {
+		waterMaterial.uniforms.uFrequency.value = ev.value
+	})
+
+pane
+	.addBinding(config, 'amplitude', {
+		min: 0,
+		max: 1,
+		step: 0.01,
+	})
+	.on('change', (ev) => {
+		waterMaterial.uniforms.uAmplitude.value = ev.value
 	})
 
 pane
@@ -67,7 +89,7 @@ pane
 		step: 1,
 	})
 	.on('change', (ev) => {
-		mirrorMaterial.uniforms.uPixelation.value = ev.value
+		waterMaterial.uniforms.uPixelation.value = ev.value
 
 		reflectTarget.setSize(sizes.width / ev.value, sizes.height / ev.value)
 	})
@@ -83,35 +105,21 @@ const scene = new THREE.Scene()
  * BOX
  */
 // const material = new THREE.MeshNormalMaterial()
-const material = new THREE.MeshStandardMaterial({ color: 'yellow' })
-const geometry = new THREE.IcosahedronGeometry(1)
+const material = new THREE.MeshStandardMaterial({ color: 'tomato' })
+const geometry = new THREE.TorusKnotGeometry(0.7, 0.3, 200, 100)
 const mesh = new THREE.Mesh(geometry, material)
-mesh.position.y += 2
+mesh.position.y += 1.5
 scene.add(mesh)
-
-const cone = new THREE.Mesh(
-	new THREE.ConeGeometry(1, 2, 40),
-	new THREE.MeshLambertMaterial({ color: 'coral' })
-)
-
-cone.position.set(-3.7, 1, -5.5)
-scene.add(cone)
-
-const cube = new THREE.Mesh(
-	new THREE.BoxGeometry(2, 2, 2),
-	new THREE.MeshLambertMaterial({ color: 'azure' })
-)
-
-cube.position.set(5.2, 1, -3.2)
-scene.add(cube)
 
 // __floor__
 /**
  * Plane
  */
-const mirrorMaterial = new THREE.ShaderMaterial({
+const waterMaterial = new THREE.ShaderMaterial({
 	fragmentShader,
 	vertexShader,
+	transparent: true,
+	// wireframe: true,
 	uniforms: {
 		uReflectionMap: { value: new THREE.Uniform() },
 		uTime: { value: 0 },
@@ -119,12 +127,14 @@ const mirrorMaterial = new THREE.ShaderMaterial({
 		uReflectivity: { value: config.reflectivity },
 		uRoughness: { value: config.roughness },
 		uRoughnessScale: { value: config.roughnessScale },
+		uFrequency: { value: config.frequency },
+		uAmplitude: { value: config.amplitude },
 	},
 })
-const mirrorGeometry = new THREE.PlaneGeometry(100, 100)
-mirrorGeometry.rotateX(-Math.PI * 0.5)
-const mirror = new THREE.Mesh(mirrorGeometry, mirrorMaterial)
-scene.add(mirror)
+const waterGeometry = new THREE.PlaneGeometry(15, 15, 200, 200)
+waterGeometry.rotateX(-Math.PI * 0.5)
+const water = new THREE.Mesh(waterGeometry, waterMaterial)
+scene.add(water)
 
 /**
  * render sizes
@@ -139,15 +149,7 @@ const sizes = {
  */
 const fov = 60
 const camera = new THREE.PerspectiveCamera(fov, sizes.width / sizes.height, 0.1)
-camera.position.set(8, 8, 8)
-camera.lookAt(new THREE.Vector3(0, 2.5, 0))
-
-/**
- * Show the axes of coordinates system
- */
-// __helper_axes__
-const axesHelper = new THREE.AxesHelper(3)
-// scene.add(axesHelper)
+camera.position.set(5, 1.5, 5)
 
 // reflection
 const reflectTarget = new THREE.WebGLRenderTarget(
@@ -162,29 +164,7 @@ const reflectTarget = new THREE.WebGLRenderTarget(
 	}
 )
 
-mirrorMaterial.uniforms.uReflectionMap.value = reflectTarget.texture
-// mirrorMaterial.map = reflectTarget.texture
-
-// mirror.onBeforeRender = () => {
-// 	// console.log('render')
-// 	reflectionCamera.position.copy(camera.position)
-// 	reflectionCamera.position.y *= -1
-// 	const target = controls.target.clone()
-// 	target.y *= -1
-// 	reflectionCamera.lookAt(target)
-
-// 	mirror.visible = false
-// 	renderer.setRenderTarget(reflectTarget)
-// 	// renderer.clear()
-
-// 	// plane.visible = false
-// 	renderer.render(scene, reflectionCamera)
-// 	renderer.setRenderTarget(null)
-// 	mirror.visible = true
-// 	// plane.visible = true
-// }
-
-// reflectTarget.texture.generateMipmaps = false
+waterMaterial.uniforms.uReflectionMap.value = reflectTarget.texture
 
 const reflectionCamera = camera.clone()
 
@@ -202,6 +182,7 @@ handleResize()
  */
 // __controls__
 const controls = new OrbitControls(camera, renderer.domElement)
+controls.target.set(0, 0.5, 0)
 controls.enableDamping = true
 
 /**
@@ -221,7 +202,7 @@ const plane = new THREE.Mesh(planeGeometry, planeMaterial)
 plane.position.set(4, 4, 0)
 // scene.add(plane)
 
-scene.background = new THREE.Color(0x020202)
+scene.background = new THREE.Color(0xbbccff)
 
 /**
  * Three js Clock
@@ -243,13 +224,14 @@ function tic() {
 	 * tempo totale trascorso dall'inizio
 	 */
 	// const time = clock.getElapsedTime()
-	mesh.rotation.y += dt
-	mesh.position.y = 3.5 + Math.sin(time) * 1.5
+	mesh.rotation.y += dt * 0.5
+	mesh.rotation.x += dt * 0.5
+	// mesh.position.y = 3.5 + Math.sin(time) * 1.5
 
 	// __controls_update__
 	controls.update()
 
-	mirrorMaterial.uniforms.uTime.value = time
+	waterMaterial.uniforms.uTime.value = time
 
 	// console.log('render')
 	reflectionCamera.position.copy(camera.position)
@@ -258,16 +240,14 @@ function tic() {
 	target.y *= -1
 	reflectionCamera.lookAt(target)
 
-	mirror.visible = false
+	water.visible = false
 	renderer.setRenderTarget(reflectTarget)
 	renderer.clear()
 
-	// plane.visible = false
 	renderer.render(scene, reflectionCamera)
 
 	renderer.setRenderTarget(null)
-	mirror.visible = true
-	// plane.visible = true
+	water.visible = true
 
 	renderer.render(scene, camera)
 
