@@ -14,53 +14,10 @@ import vertexShader from './shaders/water/vertex.glsl'
  */
 // __gui__
 const config = {
-	// example: 5,
-	pixelation: 1,
-	reflectivity: 0.4,
-	roughness: 0,
-	roughnessScale: 20,
 	frequency: 2,
 	amplitude: 0.07,
 }
 const pane = new Pane()
-
-// pane
-// 	.addBinding(config, 'example', {
-// 		min: 0,
-// 		max: 10,
-// 		step: 0.1,
-// 	})
-// 	.on('change', (ev) => console.log(ev.value))
-
-pane
-	.addBinding(config, 'reflectivity', {
-		min: 0,
-		max: 1,
-		step: 0.01,
-	})
-	.on('change', (ev) => {
-		waterMaterial.uniforms.uReflectivity.value = ev.value
-	})
-
-pane
-	.addBinding(config, 'roughness', {
-		min: 0,
-		max: 0.1,
-		step: 0.001,
-	})
-	.on('change', (ev) => {
-		waterMaterial.uniforms.uRoughness.value = ev.value
-	})
-
-pane
-	.addBinding(config, 'roughnessScale', {
-		min: 1,
-		max: 50,
-		step: 0.5,
-	})
-	.on('change', (ev) => {
-		waterMaterial.uniforms.uRoughnessScale.value = ev.value
-	})
 
 pane
 	.addBinding(config, 'frequency', {
@@ -82,28 +39,11 @@ pane
 		waterMaterial.uniforms.uAmplitude.value = ev.value
 	})
 
-pane
-	.addBinding(config, 'pixelation', {
-		min: 1,
-		max: 100,
-		step: 1,
-	})
-	.on('change', (ev) => {
-		waterMaterial.uniforms.uPixelation.value = ev.value
-
-		reflectTarget.setSize(sizes.width / ev.value, sizes.height / ev.value)
-	})
-
 /**
  * Scene
  */
 const scene = new THREE.Scene()
-// scene.background = new THREE.Color(0xdedede)
 
-// __box__
-/**
- * BOX
- */
 // const material = new THREE.MeshNormalMaterial()
 const material = new THREE.MeshStandardMaterial({ color: 'tomato' })
 const geometry = new THREE.TorusKnotGeometry(0.7, 0.3, 200, 100)
@@ -111,22 +51,16 @@ const mesh = new THREE.Mesh(geometry, material)
 mesh.position.y += 1.5
 scene.add(mesh)
 
-// __floor__
 /**
- * Plane
+ * Water
  */
 const waterMaterial = new THREE.ShaderMaterial({
 	fragmentShader,
 	vertexShader,
 	transparent: true,
-	// wireframe: true,
 	uniforms: {
 		uReflectionMap: { value: new THREE.Uniform() },
 		uTime: { value: 0 },
-		uPixelation: { value: config.pixelation },
-		uReflectivity: { value: config.reflectivity },
-		uRoughness: { value: config.roughness },
-		uRoughnessScale: { value: config.roughnessScale },
 		uFrequency: { value: config.frequency },
 		uAmplitude: { value: config.amplitude },
 	},
